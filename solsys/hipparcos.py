@@ -1,3 +1,6 @@
+# Stars in Hipparcos catalogue whose magnitudes are <=6
+# or are present in constellationship.fab
+hip_stars = """
 hip,ra,dec,Vmag
 71683,219.90206584,-60.83397468,-0.01
 53253,163.37356736,-58.8531708,3.78
@@ -5045,3 +5048,4 @@ hip,ra,dec,Vmag
 32761,102.46380782,-53.62244951,4.41
 32765,102.47756897,-46.61456012,5.14
 65535,201.5323613,-39.75510736,5.11
+"""

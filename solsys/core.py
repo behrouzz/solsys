@@ -5,13 +5,13 @@ import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 from hypatie.plots import plot_altaz
 from hypatie.transform import radec_to_altaz
-import pkg_resources
+from .constellations import constellations
+from .hipparcos import hip_stars
+from io import StringIO
 
 
 def load_constellations():
-    stream = pkg_resources.resource_stream(__name__, 'data/constellations.txt')
-    with open(stream, 'r') as f:
-        data = f.read().split('\n')[:-1]
+    data = constellations.split('\n')[1:-1]
     dc = {}
     for i in data:
         name = i.split(' ')[0]
@@ -26,9 +26,9 @@ def load_constellations():
 
     return edges
 
+
 def load_hipparcos():
-    stream = pkg_resources.resource_stream(__name__, 'data/hipparcos.csv')
-    df = pd.read_csv(stream).set_index('hip')
+    df = pd.read_csv(StringIO(hip_stars)).set_index('hip')
     return df
 
 
