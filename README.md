@@ -11,7 +11,7 @@ Install the latest version of *solsys* from [PyPI](https://pypi.org/project/sols
 
     pip install solsys
 
-Requirements: numpy, scipy, pandas, matplotlib, requests, jplephem
+Requirements: numpy, scipy, pandas, matplotlib, requests, jplephem, hypatie
 
 
 See more at [astrodatascience.net](https://astrodatascience.net/)

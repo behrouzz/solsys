@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="solsys",
-    version="0.0.0",
+    version="0.0.1",
     author="Behrouz Safari",
     author_email="behrouz.safari@gmail.com",
     description="A python package for Solar System calculations",
@@ -20,6 +20,6 @@ setuptools.setup(
     ],
     packages=["solsys"],
     include_package_data=True,
-    install_requires=["numpy", "scipy", "pandas", "matplotlib", "requests", "jplephem"],
+    install_requires=["numpy", "scipy", "pandas", "matplotlib", "requests", "jplephem", "hypatie"],
     python_requires='>=3.4',
 )
