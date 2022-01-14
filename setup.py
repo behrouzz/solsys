@@ -20,7 +20,7 @@ setuptools.setup(
     ],
     packages=["solsys"],
     include_package_data=True,
-    package_data={'': ['data/*.*'],
+    package_data={'': ['data/*.*']},
     install_requires=["numpy", "scipy", "pandas", "matplotlib", "requests", "jplephem", "hypatie"],
     python_requires='>=3.4',
 )
