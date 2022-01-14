@@ -3,13 +3,12 @@ import numpy as np
 from datetime import datetime
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
-from hypatie.plots import plot_radec, plot_altaz
+from hypatie.plots import plot_altaz
 from hypatie.transform import radec_to_altaz
-from hypatie.data import cities
-from io import StringIO
+
 
 def load_constellations():
-    with open('constellations.txt', 'r') as f:
+    with open('data/constellations.txt', 'r') as f:
         data = f.read().split('\n')[:-1]
     dc = {}
     for i in data:
@@ -26,7 +25,7 @@ def load_constellations():
     return edges
 
 def load_hipparcos():
-    df = pd.read_csv('hipparcos.csv').set_index('hip')
+    df = pd.read_csv('data/hipparcos.csv').set_index('hip')
     return df
 
 

@@ -1,3 +1,3 @@
-#from .horizons import Vector, Observer
+from .core import draw_chart
 
-__version__ = "0.0.1"
+__version__ = "0.0.2"
