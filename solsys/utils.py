@@ -5,6 +5,13 @@ import math
 rd = pi/180
 dg = 180/pi
 
+def datetime_to_day(t):
+    y = t.year
+    m = t.month
+    d = t.day
+    UT = t.hour + t.minute/60 + t.second/3600
+    return day(y,m,d,UT)
+
 def day(y, m, D, UT):
     d = 367*y - 7 * ( y + (m+9)//12 ) // 4 + 275*m//9 + D - 730530
     d = d + UT/24.0

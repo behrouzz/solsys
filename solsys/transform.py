@@ -1,6 +1,7 @@
 import numpy as np
 from numpy import sin, cos, sqrt, arctan2
 from utils import rev, obl_ecl, getE, rd, dg
+from datetime import datetime
 
 def mag(x):
     return np.linalg.norm(np.array(x))
@@ -46,6 +47,27 @@ def spherical_to_cartesian(spherical):
     y = r * np.cos(lat*rd) * np.sin(lon*rd)
     z = r * np.sin(lat*rd)
     return np.array([x, y, z])
+
+
+def radec_to_altaz(ra, dec, obs_loc, t):
+    lon, lat = obs_loc
+
+    J2000 = datetime(2000,1,1,12)
+    d = (t - J2000).total_seconds() / 86400 #day offset
+
+    UT = t.hour + t.minute/60 + t.second/3600
+    LST = (100.46 + 0.985647 * d + lon + 15*UT + 360) % 360
+    ha = (LST - ra + 360) % 360
+    
+    x = np.cos(ha*rd) * np.cos(dec*rd)
+    y = np.sin(ha*rd) * np.cos(dec*rd)
+    z = np.sin(dec*rd)
+    xhor = x*np.cos((90-lat)*rd) - z*np.sin((90-lat)*rd)
+    yhor = y
+    zhor = x*np.sin((90-lat)*rd) + z*np.cos((90-lat)*rd)
+    az = np.arctan2(yhor, xhor)*dg + 180
+    alt = np.arcsin(zhor)*dg
+    return az, alt
 
 
 def state_to_element(r, v, mu=1.32712440018e+20):

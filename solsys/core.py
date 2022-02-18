@@ -2,7 +2,7 @@ import numpy as np
 from numpy import pi, sin, cos, tan, sqrt, arctan2, arcsin, arctan, arccos, log10
 from orbital_elements import elements
 from utils import *
-from transform import cartesian_to_spherical, spherical_to_cartesian, ecliptic_to_equatorial, elements_to_ecliptic
+from transform import cartesian_to_spherical, spherical_to_cartesian, ecliptic_to_equatorial, elements_to_ecliptic, radec_to_altaz
 from correction import moon_perts, jupiter_lon_perts, saturn_lon_perts, saturn_lat_perts, uranus_lon_perts
 
 class sun:
@@ -20,10 +20,13 @@ class sun:
         ecl_car  : ecliptic cartesian coordinates (x, y, z)
         equ_car  : equatorial cartesian coordinates (x, y, z)
         equ_sph  : equatorial spherical coordinates (ra, dec, r)
+        alt      : azimuth
+        az       : altitude
         L   : Sun's mean longitude
     """
-    def __init__(self, d, obs_loc=None):
+    def __init__(self, t, obs_loc=None):
         self.name = 'sun'
+        d = datetime_to_day(t)
         ecl = obl_ecl(d)
         self.d = d
         N,i,w,a,e,M = elements(self.name, d)
@@ -38,30 +41,7 @@ class sun:
         if obs_loc is None:
             self.az, self.alt = None, None
         else:
-            self.az, self.alt = self._get_altaz(obs_loc)
-        
-
-    def _get_altaz(self, obs_loc):
-        LON, LAT = obs_loc
-        UT = getUT(self.d)
-        
-        GMST0 = rev(self.L + 180) / 15
-        SIDTIME = GMST0 + UT + LON/15 # in hours
-        RA_hour = self.ra/15 # convert RA from degrees to hours
-        HA_hour = SIDTIME - RA_hour
-        HA = HA_hour *15 # converts HA from hours to degrees
-
-        x = cos(HA *rd) * cos(self.dec*rd)
-        y = sin(HA *rd) * cos(self.dec*rd)
-        z = sin(self.dec*rd)
-
-        xhor = x * sin(LAT*rd) - z * cos(LAT*rd)
-        yhor = y
-        zhor = x * cos(LAT*rd) + z * sin(LAT*rd)
-
-        az  = arctan2(yhor, xhor)*(180/pi) + 180
-        alt = arcsin(zhor)*(180/pi)
-        return az, alt
+            self.az, self.alt = radec_to_altaz(self.ra, self.dec, obs_loc, t)
         
 
 class moon:
@@ -94,11 +74,12 @@ class moon:
         FV         : phase angle
     """
         
-    def __init__(self, d, obs_loc=None):
+    def __init__(self, t, obs_loc=None):
         self.name = 'moon'
+        d = datetime_to_day(t)
         ecl = obl_ecl(d)
         #self.obs_loc = obs_loc
-        self._sun = sun(d)
+        self._sun = sun(t)
         N, i, w, a, e, M = elements(self.name, d)
         self.elements = {'N':N, 'i':i, 'w':w, 'a':a, 'e':e, 'M':M}
         #x_ecl, y_ecl, z_ecl = elements_to_ecliptic('moon', N,i,w,a,e,M)
@@ -198,11 +179,12 @@ class planet:
         mag        : Apparent magnitude
         diameter   : Apparent diameter
     """
-    def __init__(self, name, d, obs_loc=None, epoch=None):
+    def __init__(self, name, t, obs_loc=None, epoch=None):
         self.name = name.lower()
         #self.obs_loc = obs_loc
+        d = datetime_to_day(t)
         ecl = obl_ecl(d)
-        self._sun = sun(d)
+        self._sun = sun(t)
         N,i,w,a,e,M = elements(self.name, d)
         self.elements = {'N':N, 'i':i, 'w':w, 'a':a, 'e':e, 'M':M}
         hel_ecl_car = elements_to_ecliptic(self.name, N,i,w,a,e,M)
@@ -235,6 +217,11 @@ class planet:
         self.geo_equ_car = ecliptic_to_equatorial(self.geo_ecl_car, d)
         self.geo_equ_sph = cartesian_to_spherical(self.geo_equ_car)
         self.ra, self.dec, self.r = self.geo_equ_sph # just for ease of use
+
+        if obs_loc is None:
+            self.az, self.alt = None, None
+        else:
+            self.az, self.alt = radec_to_altaz(self.ra, self.dec, obs_loc, t)
         #=====================================================================
         """
 
