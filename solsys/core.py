@@ -7,28 +7,41 @@ from correction import moon_perts, jupiter_lon_perts, saturn_lon_perts, saturn_l
 
 class sun:
     """
-    L   : Sun's mean longitude
-    lon : Sun's true longitude
+    Sun positional parameters
+    
+    Parameters
+    ----------
+        d (datetime): time of observation
+        obs_loc : tuple of observer location (longtitude, latitude)
+
+    Attributes
+    ----------
+        ecl_sph  : ecliptic spherical coordinates (lon, lat, r)
+        ecl_car  : ecliptic cartesian coordinates (x, y, z)
+        equ_car  : equatorial cartesian coordinates (x, y, z)
+        equ_sph  : equatorial spherical coordinates (ra, dec, r)
+        L   : Sun's mean longitude
     """
     def __init__(self, d, obs_loc=None):
         self.name = 'sun'
         ecl = obl_ecl(d)
         self.d = d
-        N, i, w, a, e, M = elements(self.name, d)
+        N,i,w,a,e,M = elements(self.name, d)
         self.elements = {'N':N, 'i':i, 'w':w, 'a':a, 'e':e, 'M':M}
         self.L = rev(w+M)
-        
-        self.hel_ecl_cartesian, self.lon = elements_to_ecliptic('sun', N,i,w,a,e,M)
-        self.hel_equ_cartesian = ecliptic_to_equatorial(self.hel_ecl_cartesian, d)
-        self.ra, self.dec, self.r = cartesian_to_spherical(x, y, z)
+        self.ecl_car = elements_to_ecliptic('sun', N,i,w,a,e,M)
+        self.ecl_sph = cartesian_to_spherical(self.ecl_car)
+        self.equ_car = ecliptic_to_equatorial(self.ecl_car, d)
+        self.equ_sph = cartesian_to_spherical(self.equ_car)
+        self.ra, self.dec, self.r = self.equ_sph # just for ease of use
 
         if obs_loc is None:
             self.az, self.alt = None, None
         else:
-            self.az, self.alt = self.altaz(obs_loc)
+            self.az, self.alt = self._get_altaz(obs_loc)
         
 
-    def altaz(self, obs_loc):
+    def _get_altaz(self, obs_loc):
         LON, LAT = obs_loc
         UT = getUT(self.d)
         
@@ -135,8 +148,8 @@ class moon:
 
         if obs_loc is not None:
             self.ra, self.dec = self.topocentric_correction(obs_loc)
-
-        self.elongation = arccos( cos((self._sun.lon-self.ecl_lon)*rd) * cos(self.ecl_lat*rd) )*(180/pi)
+        
+        self.elongation = arccos( cos((self._sun.ecl_sph[0]-self.ecl_lon)*rd) * cos(self.ecl_lat*rd) )*(180/pi)
         self.FV = 180 - self.elongation
 
     def topocentric_correction(self, obs_loc):
@@ -173,24 +186,13 @@ class planet:
     Attributes
     ----------
         
-        lon_h_ecl  : Heliocentric ecliptic longitude
-        lat_h_ecl  : Heliocentric ecliptic latitude
-        r_h_ecl    : Heliocentric ecliptic distance
-        xh_ecl     : Heliocentric ecliptic x
-        yh_ecl     : Heliocentric ecliptic y
-        zh_ecl     : Heliocentric ecliptic z
-        lon_g_ecl  : Geocentric ecliptic longitude
-        lat_g_ecl  : Geocentric ecliptic latitude
-        r_g_ecl    : Geocentric ecliptic distance
-        xg_ecl     : Geocentric ecliptic x
-        yg_ecl     : Geocentric ecliptic y
-        zg_ecl     : Geocentric ecliptic z
-        ra         : Right Ascension (GCRS)
-        dec        : Declination (GCRS)
-        r          : Distance to Earth
-        x          : equatorial x (GCRS)
-        y          : equatorial y (GCRS)
-        z          : equatorial z (GCRS)
+        hel_ecl_sph  : Heliocentric ecliptic spherical coordinates (lon, lat, r)
+        hel_ecl_car  : Heliocentric ecliptic cartesian coordinates (x, y, z)
+        geo_ecl_car  : Geocentric ecliptic cartesian coordinates (x, y, z)
+        geo_ecl_sph  : Geocentric ecliptic spherical coordinates (lon, lat, r)
+        geo_equ_car  : Geocentric equatorial cartesian coordinates (x, y, z)
+        geo_equ_sph  : Geocentric equatorial spherical coordinates (ra, dec, r)
+        
         elongation : elongation
         FV         : phase angle
         mag        : Apparent magnitude
@@ -203,8 +205,8 @@ class planet:
         self._sun = sun(d)
         N,i,w,a,e,M = elements(self.name, d)
         self.elements = {'N':N, 'i':i, 'w':w, 'a':a, 'e':e, 'M':M}
-        x, y, z = elements_to_ecliptic(self.name, N,i,w,a,e,M)
-        lon, lat, r = cartesian_to_spherical(x, y, z)
+        hel_ecl_car = elements_to_ecliptic(self.name, N,i,w,a,e,M)
+        lon, lat, r = cartesian_to_spherical(hel_ecl_car)
 
         # Correcting perturbations of Jupiter, Saturn and Uranus
         if self.name in ['jupiter', 'saturn', 'uranus']:
@@ -223,35 +225,22 @@ class planet:
         if epoch is not None:
             lon = lon + 3.82394E-5 * (365.2422 * (epoch-2000) - d)
 
-        self.hel_ecl_spherical = np.array([lon, lat, r])
+        # heliocentric
+        self.hel_ecl_sph = np.array([lon, lat, r])
+        self.hel_ecl_car = spherical_to_cartesian(self.hel_ecl_sph)
 
-        # kh: hypatie
+        # To geocentric
+        self.geo_ecl_car = self._sun.ecl_car + self.hel_ecl_car # sun check shavad
+        self.geo_ecl_sph = cartesian_to_spherical(self.geo_ecl_car)
+        self.geo_equ_car = ecliptic_to_equatorial(self.geo_ecl_car, d)
+        self.geo_equ_sph = cartesian_to_spherical(self.geo_equ_car)
+        self.ra, self.dec, self.r = self.geo_equ_sph # just for ease of use
+        #=====================================================================
         """
-        self.xh_ecl, self.yh_ecl, self.zh_ecl = \
-                     spherical_to_cartesian(self.lon_h_ecl, self.lat_h_ecl, self.r_h_ecl)
-        """
-        x, y, z = spherical_to_cartesian(lon, lat, r)
-        self.hel_ecl_cartesian = np.array([x, y, z])
-        
-
-        x = self._sun.h_ecl[0] + x
-        y = self._sun.h_ecl[1] + y
-        z = self._sun.h_ecl[2] + z
-        
-        self.geo_ecl_cartesian = np.array([x, y, z])
-        lon, lat, r = cartesian_to_spherical(x, y, z)
-        self.geo_ecl_spherical = np.array([lon, lat, r])
-
-        # equatorial rectangular geocentric
-        self.x, self.y, self.z = ecliptic_to_equatorial(x,y,z, d)
-        self.geo_equ_cartesian = np.array([x, y, z])
-
-        # converet to spherical coordinates (radec)
-        self.ra, self.dec, self.r = cartesian_to_spherical(self.x, self.y, self.z)
 
         # Phase angle and the elongation
-        R = self.r
-        r = self.hel_ecl_spherical[-1]
+        R = self.hel_ecl_sph[-1] # ehtemalan
+        r = self.geo_equ_sph[-1]
         s = self._sun.r
 
         self.elongation = arccos((s**2 + R**2 - r**2)/(2*s*R))*(180/pi)
@@ -292,3 +281,4 @@ class planet:
             mag = None
         self.mag = mag
         self.diameter = d0 / self.r
+        """

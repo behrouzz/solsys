@@ -5,6 +5,26 @@ from utils import rev, obl_ecl, getE, rd, dg
 def mag(x):
     return np.linalg.norm(np.array(x))
 
+
+def elements_to_ecliptic(name, N,i,w,a,e,M):
+    E = getE(e, M, dp=5)
+    xv = a * (cos(E*rd) - e)
+    yv = a * (sqrt(1 - e**2) * sin(E*rd))
+    r = sqrt(xv**2 + yv**2) # distance
+    v = rev(arctan2(yv, xv)*dg) # true anomaly
+    if name=='sun':
+        lon = rev(w+v)
+        x_ecl = r * cos(lon*rd)
+        y_ecl = r * sin(lon*rd)
+        z_ecl = 0.0
+        return np.array([x_ecl, y_ecl, z_ecl])#, lon
+    else:
+        x_ecl = r * ( cos(N*rd) * cos((v+w)*rd) - sin(N*rd) * sin((v+w)*rd) * cos(i*rd) )
+        y_ecl = r * ( sin(N*rd) * cos((v+w)*rd) + cos(N*rd) * sin((v+w)*rd) * cos(i*rd) )
+        z_ecl = r * ( sin((v+w)*rd) * sin(i*rd) )
+        return np.array([x_ecl, y_ecl, z_ecl])
+
+
 def cartesian_to_spherical(xyz):
     x,y,z = xyz
     lon = rev(np.arctan2(y, x)*dg)
@@ -27,23 +47,6 @@ def spherical_to_cartesian(spherical):
     z = r * np.sin(lat*rd)
     return np.array([x, y, z])
 
-def elements_to_ecliptic(name, N,i,w,a,e,M):
-    E = getE(e, M, dp=5)
-    xv = a * (cos(E*rd) - e)
-    yv = a * (sqrt(1 - e**2) * sin(E*rd))
-    r = sqrt(xv**2 + yv**2) # distance
-    v = rev(arctan2(yv, xv)*dg) # true anomaly
-    if name=='sun':
-        lon = rev(w+v)
-        x_ecl = r * cos(lon*rd)
-        y_ecl = r * sin(lon*rd)
-        z_ecl = 0.0
-        return np.array([x_ecl, y_ecl, z_ecl]), lon
-    else:
-        x_ecl = r * ( cos(N*rd) * cos((v+w)*rd) - sin(N*rd) * sin((v+w)*rd) * cos(i*rd) )
-        y_ecl = r * ( sin(N*rd) * cos((v+w)*rd) + cos(N*rd) * sin((v+w)*rd) * cos(i*rd) )
-        z_ecl = r * ( sin((v+w)*rd) * sin(i*rd) )
-        return np.array([x_ecl, y_ecl, z_ecl])
 
 def state_to_element(r, v, mu=1.32712440018e+20):
     """
