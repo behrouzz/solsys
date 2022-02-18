@@ -5,27 +5,24 @@ from utils import rev, obl_ecl, getE, rd, dg
 def mag(x):
     return np.linalg.norm(np.array(x))
 
-def cartesian_to_spherical(xyz):
-    x,y,z = xyz
+def cartesian_to_spherical(x, y ,z):
     lon = rev(np.arctan2(y, x)*dg)
     lat = np.arctan2(z, np.sqrt(x**2 + y**2))*dg
     r = np.sqrt(x**2 + y**2 + z**2)
-    return np.array([lon, lat, r])
+    return lon, lat, r
 
-def ecliptic_to_equatorial(ecl_xyz, d):
-    x_ecl, y_ecl, z_ecl = ecl_xyz
+def ecliptic_to_equatorial(x_ecl, y_ecl, z_ecl, d):
     ecl = obl_ecl(d)
     x_equ = x_ecl
     y_equ = y_ecl * np.cos(ecl*rd) - z_ecl * np.sin(ecl*rd)
     z_equ = y_ecl * np.sin(ecl*rd) + z_ecl * np.cos(ecl*rd)
-    return np.array([x_equ, y_equ, z_equ])
+    return x_equ, y_equ, z_equ
 
-def spherical_to_cartesian(spherical):
-    lon, lat, r = spherical
+def spherical_to_cartesian(lon, lat, r):
     x = r * np.cos(lat*rd) * np.cos(lon*rd)
     y = r * np.cos(lat*rd) * np.sin(lon*rd)
     z = r * np.sin(lat*rd)
-    return np.array([x, y, z])
+    return x, y, z
 
 def elements_to_ecliptic(name, N,i,w,a,e,M):
     E = getE(e, M, dp=5)
@@ -38,12 +35,12 @@ def elements_to_ecliptic(name, N,i,w,a,e,M):
         x_ecl = r * cos(lon*rd)
         y_ecl = r * sin(lon*rd)
         z_ecl = 0.0
-        return np.array([x_ecl, y_ecl, z_ecl]), lon
+        return x_ecl, y_ecl, z_ecl, lon
     else:
         x_ecl = r * ( cos(N*rd) * cos((v+w)*rd) - sin(N*rd) * sin((v+w)*rd) * cos(i*rd) )
         y_ecl = r * ( sin(N*rd) * cos((v+w)*rd) + cos(N*rd) * sin((v+w)*rd) * cos(i*rd) )
         z_ecl = r * ( sin((v+w)*rd) * sin(i*rd) )
-        return np.array([x_ecl, y_ecl, z_ecl])
+        return x_ecl, y_ecl, z_ecl
 
 def state_to_element(r, v, mu=1.32712440018e+20):
     """
