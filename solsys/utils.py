@@ -2,6 +2,8 @@ from numpy import pi, sin, cos, tan, sqrt, arctan2, arcsin, arctan, arccos, log1
 from datetime import datetime
 import math
 
+planets = ['mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune']
+
 rd = pi/180
 dg = 180/pi
 

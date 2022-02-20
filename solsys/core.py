@@ -1,6 +1,6 @@
 import numpy as np
 from numpy import pi, sin, cos, tan, sqrt, arctan2, arcsin, arctan, arccos, log10
-from orbital_elements import elements
+from orbital_elements import elements, jupiter_oe, saturn_oe, uranus_oe
 from utils import *
 from transform import cartesian_to_spherical, spherical_to_cartesian, ecliptic_to_equatorial, elements_to_ecliptic, radec_to_altaz
 from correction import moon_perts, jupiter_lon_perts, saturn_lon_perts, saturn_lat_perts, uranus_lon_perts
@@ -24,7 +24,7 @@ class sun:
         az       : altitude
         L   : Sun's mean longitude
     """
-    def __init__(self, t, obs_loc=None):
+    def __init__(self, t, obs_loc=None, epoch=None):
         self.name = 'sun'
         d = datetime_to_day(t)
         ecl = obl_ecl(d)
@@ -34,6 +34,9 @@ class sun:
         self.L = rev(w+M)
         self.ecl_car = elements_to_ecliptic('sun', N,i,w,a,e,M)
         self.ecl_sph = cartesian_to_spherical(self.ecl_car)
+        if epoch is not None:
+            self.ecl_sph[0] = self.ecl_sph[0] + 3.82394E-5 * (365.2422 * (epoch-2000) - d)
+            self.ecl_car = spherical_to_cartesian(self.ecl_sph)
         self.equ_car = ecliptic_to_equatorial(self.ecl_car, d)
         self.equ_sph = cartesian_to_spherical(self.equ_car)
         self.ra, self.dec, self.r = self.equ_sph # just for ease of use
@@ -74,7 +77,7 @@ class moon:
         FV         : phase angle
     """
         
-    def __init__(self, t, obs_loc=None):
+    def __init__(self, t, obs_loc=None, epoch=None):
         self.name = 'moon'
         d = datetime_to_day(t)
         ecl = obl_ecl(d)
@@ -184,7 +187,7 @@ class planet:
         #self.obs_loc = obs_loc
         d = datetime_to_day(t)
         ecl = obl_ecl(d)
-        self._sun = sun(t)
+        self._sun = sun(t=t, obs_loc=obs_loc, epoch=epoch)
         N,i,w,a,e,M = elements(self.name, d)
         self.elements = {'N':N, 'i':i, 'w':w, 'a':a, 'e':e, 'M':M}
         hel_ecl_car = elements_to_ecliptic(self.name, N,i,w,a,e,M)
@@ -202,7 +205,7 @@ class planet:
                 lat = lat + saturn_lat_perts(Mj, Ms, Mu)
             elif self.name=='uranus':
                 lon = lon + uranus_lon_perts(Mj, Ms, Mu)
-                
+        
         # Precession
         if epoch is not None:
             lon = lon + 3.82394E-5 * (365.2422 * (epoch-2000) - d)
@@ -223,11 +226,11 @@ class planet:
         else:
             self.az, self.alt = radec_to_altaz(self.ra, self.dec, obs_loc, t)
         #=====================================================================
-        """
+        
 
         # Phase angle and the elongation
-        R = self.hel_ecl_sph[-1] # ehtemalan
-        r = self.geo_equ_sph[-1]
+        R = self.geo_ecl_sph[-1] # ehtemalan
+        r = self.hel_ecl_sph[-1]
         s = self._sun.r
 
         self.elongation = arccos((s**2 + R**2 - r**2)/(2*s*R))*(180/pi)
@@ -252,8 +255,8 @@ class planet:
             d0 = 158.2
             ir = 28.06 # tilt rings to ecliptic
             Nr = 169.51 + 3.82E-5 * d # ascending node of plane of rings
-            los = self.lon_g_ecl # Saturn's geocentric ecliptic longitude
-            las = self.lat_g_ecl # Saturn's geocentric ecliptic latitude
+            los = self.geo_ecl_sph[0] # Saturn's geocentric ecliptic longitude
+            las = self.geo_ecl_sph[1] # Saturn's geocentric ecliptic latitude
             # B : tilt of Saturn's rings
             B = arcsin(sin(las*rd) * cos(ir*rd) - cos(las*rd) * sin(ir*rd) * sin((los-Nr)*rd))*(180/pi)
             ring_magn = -2.6 * sin(abs(B)*rd) + 1.2 * (sin(B*rd))**2
@@ -266,6 +269,6 @@ class planet:
             mag = -6.90 + 5*log10(r*R) + 0.001 * FV
         else:
             mag = None
-        self.mag = mag
+        self.mag = round(mag,2)
         self.diameter = d0 / self.r
-        """
+        
