@@ -1,6 +1,6 @@
 import numpy as np
 from numpy import sin, cos, sqrt, arctan2
-from utils import rev, obl_ecl, getE, rd, dg
+from .utils import rev, obl_ecl, getE, rd, dg
 from datetime import datetime
 
 def mag(x):

@@ -8,7 +8,7 @@ setuptools.setup(
     version="1.0.0",
     author="Behrouz Safari",
     author_email="behrouz.safari@gmail.com",
-    description="A python package for Solar System calculations",
+    description="A python package for calculating positions of Solar System objects",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/behrouzz/solsys",
@@ -20,6 +20,6 @@ setuptools.setup(
     ],
     packages=["solsys"],
     include_package_data=True,
-    install_requires=["numpy", "scipy", "pandas", "requests", "jplephem"],
+    install_requires=["numpy"],
     python_requires='>=3.4',
 )

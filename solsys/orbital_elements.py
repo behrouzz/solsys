@@ -1,5 +1,5 @@
 # http://stjarnhimlen.se/comp/ppcomp.html
-from utils import rev
+from .utils import rev
 
 def elements(name, d):
     if name=='sun':

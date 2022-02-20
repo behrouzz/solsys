@@ -1,9 +1,9 @@
 import numpy as np
 from numpy import pi, sin, cos, tan, sqrt, arctan2, arcsin, arctan, arccos, log10
-from orbital_elements import elements, jupiter_oe, saturn_oe, uranus_oe
-from utils import *
-from transform import cartesian_to_spherical, spherical_to_cartesian, ecliptic_to_equatorial, elements_to_ecliptic, radec_to_altaz
-from correction import moon_perts, topocentric, jupiter_lon_perts, saturn_lon_perts, saturn_lat_perts, uranus_lon_perts
+from .orbital_elements import elements, jupiter_oe, saturn_oe, uranus_oe
+from .utils import *
+from .transform import cartesian_to_spherical, spherical_to_cartesian, ecliptic_to_equatorial, elements_to_ecliptic, radec_to_altaz
+from .correction import moon_perts, topocentric, jupiter_lon_perts, saturn_lon_perts, saturn_lat_perts, uranus_lon_perts
 
 class sun:
     """
@@ -23,7 +23,6 @@ class sun:
         equ_sph  : equatorial spherical coordinates (ra, dec, r)
         alt      : azimuth
         az       : altitude
-        L   : Sun's mean longitude
     """
     def __init__(self, t, obs_loc=None, epoch=None):
         self.name = 'sun'
@@ -88,28 +87,12 @@ class moon:
         
         self.L = rev(N+w+M) # Moon's mean longitude
 
-        # CONSIDERING Perturbations
-        # =========================
-        Ls = self._sun.L
-        Ms = self._sun.elements['M']
+        # Correcting perturbations
+        self.geo_ecl_sph = moon_perts(self.geo_ecl_sph, self._sun.elements, self.elements)
         
-        Lm = self.L
-        Mm = self.elements['M']
-        Nm = self.elements['N']
-
-        D = Lm - Ls # Moon's mean elongation
-        F = Lm - Nm # Moon's argument of latitude
-
-        pert_lon, pert_lat, pert_r = moon_perts(Ls, Ms, Lm, Mm, Nm, D, F)
-
-        # Add this to the ecliptic positions we earlier computed:
-        self.geo_ecl_sph[0] = self.geo_ecl_sph[0] + pert_lon
-        self.geo_ecl_sph[1] = self.geo_ecl_sph[1] + pert_lat
-        self.geo_ecl_sph[2] = self.geo_ecl_sph[2] + pert_r # OK
-        
-        self.geo_ecl_car = spherical_to_cartesian(self.geo_ecl_sph) # Ok without r_=1 !
-        self.geo_equ_car = ecliptic_to_equatorial(self.geo_ecl_car, d) # OK
-        self.geo_equ_sph = cartesian_to_spherical(self.geo_equ_car) # ra, dec gozashte!!!
+        self.geo_ecl_car = spherical_to_cartesian(self.geo_ecl_sph)
+        self.geo_equ_car = ecliptic_to_equatorial(self.geo_ecl_car, d)
+        self.geo_equ_sph = cartesian_to_spherical(self.geo_equ_car)
         
         
         if obs_loc is None:

@@ -1,12 +1,24 @@
 from numpy import array, pi, sin, cos, tan, arcsin, arctan
-from utils import rev, getUT
+from .utils import rev, getUT
 
 rd = pi/180
 dg = 180/pi
 
 
-def moon_perts(Ls, Ms, Lm, Mm, Nm, D, F):
+
+
+
+
+def moon_perts(geo_ecl_sph, sun_elem, moon_elem):
     """Perturbations in Moon's coordinates"""
+    Ls = rev(sun_elem['w']+sun_elem['M'])# Sun's mean longitude
+    Ms = sun_elem['M']
+    Lm = rev(moon_elem['N']+moon_elem['w']+moon_elem['M'])# Moon's mean longitude
+    Mm = moon_elem['M']
+    Nm = moon_elem['N']
+    D = Lm - Ls # Moon's mean elongation
+    F = Lm - Nm # Moon's argument of latitude
+    
     # Perturbations in longitude (degrees)
     pert_lon = - 1.274 * sin((Mm-2*D)*rd) + 0.658 * sin(2*D*rd) \
                - 0.186 * sin(Ms*rd) - 0.059 * sin((2*Mm-2*D)*rd)\
@@ -22,7 +34,13 @@ def moon_perts(Ls, Ms, Lm, Mm, Nm, D, F):
 
     # Perturbations in lunar distance (Earth radii):
     pert_r = -0.58 * cos((Mm-2*D)*rd) - 0.46 * cos(2*D*rd)
-    return pert_lon, pert_lat, pert_r
+
+    # Add to the ecliptic positions computed earlier:
+    geo_ecl_sph[0] = geo_ecl_sph[0] + pert_lon
+    geo_ecl_sph[1] = geo_ecl_sph[1] + pert_lat
+    geo_ecl_sph[2] = geo_ecl_sph[2] + pert_r
+    
+    return geo_ecl_sph
 
 
 

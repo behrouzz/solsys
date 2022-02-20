@@ -1,4 +1,3 @@
-#from .core import draw_chart
-
+from .core import sun, moon, planet
 
 __version__ = "1.0.0"
