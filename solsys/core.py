@@ -3,7 +3,7 @@ from numpy import pi, sin, cos, tan, sqrt, arctan2, arcsin, arctan, arccos, log1
 from orbital_elements import elements, jupiter_oe, saturn_oe, uranus_oe
 from utils import *
 from transform import cartesian_to_spherical, spherical_to_cartesian, ecliptic_to_equatorial, elements_to_ecliptic, radec_to_altaz
-from correction import moon_perts, jupiter_lon_perts, saturn_lon_perts, saturn_lat_perts, uranus_lon_perts
+from correction import moon_perts, topocentric, jupiter_lon_perts, saturn_lon_perts, saturn_lat_perts, uranus_lon_perts
 
 class sun:
     """
@@ -12,6 +12,7 @@ class sun:
     Parameters
     ----------
         d (datetime): time of observation
+        epoch (int): year of epoch 
         obs_loc : tuple of observer location (longtitude, latitude)
 
     Attributes
@@ -50,31 +51,28 @@ class sun:
 class moon:
     """
     Moon positional parameters
-    
+
     Parameters
     ----------
         d (datetime): time of observation
+        epoch (int): year of epoch 
         obs_loc : tuple of observer location (longtitude, latitude)
 
     Attributes
     ----------
         elements : dictionary of orbital elements
-        v       : true anomaly
-        E       : eccentric anomaly
-        L       : mean longitude
-        ra      : Right Ascension (GCRS or topocentric if obs_loc is provided)
-        dec     : Declination (GCRS or topocentric if obs_loc is provided)
-        r       : distance to Earth
-        ecl_lon : ecliptic longitude (GCRS)
-        ecl_lat : ecliptic latitude (GCRS)
-        x_ecl   : ecliptic x (GCRS)
-        z_ecl   : ecliptic y (GCRS)
-        y_ecl   : ecliptic z (GCRS)
-        x_equ   : equatorial x (GCRS)
-        y_equ   : equatorial y (GCRS)
-        z_equ   : equatorial z (GCRS)
-        elongation : elongation
-        FV         : phase angle
+
+        geo_ecl_car  : Geocentric ecliptic cartesian coordinates (x, y, z)
+        geo_ecl_sph  : Geocentric ecliptic spherical coordinates (lon, lat, r)
+        geo_equ_car  : Geocentric equatorial cartesian coordinates (x, y, z)
+        geo_equ_sph  : Geocentric equatorial spherical coordinates (ra, dec, r)
+        ra           : Right Ascension (GCRS)
+        dec          : Declination (GCRS)
+        r            : distance to earth (in Earth Radii)
+        alt          : azimuth
+        az           : altitude
+        elongation   : elongation
+        FV           : phase angle (0:full, 90:half, 180:new)
     """
         
     def __init__(self, t, obs_loc=None, epoch=None):
@@ -82,14 +80,12 @@ class moon:
         d = datetime_to_day(t)
         ecl = obl_ecl(d)
         #self.obs_loc = obs_loc
-        self._sun = sun(t)
-        N, i, w, a, e, M = elements(self.name, d)
+        self._sun = sun(t=t, obs_loc=obs_loc, epoch=epoch)
+        N,i,w,a,e,M = elements(self.name, d)
         self.elements = {'N':N, 'i':i, 'w':w, 'a':a, 'e':e, 'M':M}
-        #x_ecl, y_ecl, z_ecl = elements_to_ecliptic('moon', N,i,w,a,e,M)
-        x, y, z = elements_to_ecliptic('moon', N,i,w,a,e,M)
-        #ecl_lon, ecl_lat, ecl_r = cartesian_to_spherical(x_ecl, y_ecl, z_ecl)
-        ecl_lon, ecl_lat, ecl_r = cartesian_to_spherical(x, y, z)
-
+        geo_ecl_car = elements_to_ecliptic(self.name, N,i,w,a,e,M) # OK
+        self.geo_ecl_sph = cartesian_to_spherical(geo_ecl_car) # OK
+        
         self.L = rev(N+w+M) # Moon's mean longitude
 
         # CONSIDERING Perturbations
@@ -107,54 +103,25 @@ class moon:
         pert_lon, pert_lat, pert_r = moon_perts(Ls, Ms, Lm, Mm, Nm, D, F)
 
         # Add this to the ecliptic positions we earlier computed:
-        self.ecl_lon = ecl_lon + pert_lon
-        self.ecl_lat = ecl_lat + pert_lat
-        self.r       = ecl_r   + pert_r
-
-        r_ = 1
-
-        x_ecl = r_ * cos(self.ecl_lon*rd) * cos(self.ecl_lat*rd)
-        y_ecl = r_ * sin(self.ecl_lon*rd) * cos(self.ecl_lat*rd)
-        z_ecl = r_ * sin(self.ecl_lat*rd)
-
-        x_equ, y_equ, z_equ = ecliptic_to_equatorial(x_ecl, y_ecl, z_ecl, d)
-
-        self.ra, self.dec, _ = cartesian_to_spherical(x_equ, y_equ, z_equ)
-
-        # kh: in qesmato khodam anjam dadam (motmaen nistam)
-        # badan check shavad
-        self.x_ecl = x_ecl * self.r
-        self.y_ecl = y_ecl * self.r
-        self.z_ecl = z_ecl * self.r
-
-        self.x_equ, self.y_equ, self.z_equ = ecliptic_to_equatorial(self.x_ecl, self.y_ecl, self.z_ecl, d)
-
-
-        if obs_loc is not None:
-            self.ra, self.dec = self.topocentric_correction(obs_loc)
+        self.geo_ecl_sph[0] = self.geo_ecl_sph[0] + pert_lon
+        self.geo_ecl_sph[1] = self.geo_ecl_sph[1] + pert_lat
+        self.geo_ecl_sph[2] = self.geo_ecl_sph[2] + pert_r # OK
         
-        self.elongation = arccos( cos((self._sun.ecl_sph[0]-self.ecl_lon)*rd) * cos(self.ecl_lat*rd) )*(180/pi)
+        self.geo_ecl_car = spherical_to_cartesian(self.geo_ecl_sph) # Ok without r_=1 !
+        self.geo_equ_car = ecliptic_to_equatorial(self.geo_ecl_car, d) # OK
+        self.geo_equ_sph = cartesian_to_spherical(self.geo_equ_car) # ra, dec gozashte!!!
+        
+        
+        if obs_loc is None:
+            self.az, self.alt = None, None
+        else:
+            self.geo_equ_sph = topocentric(obs_loc, self._sun.L, self.geo_equ_sph, d)
+            self.az, self.alt = radec_to_altaz(self.geo_equ_sph[0], self.geo_equ_sph[1], obs_loc, t)
+
+        self.ra, self.dec, self.r = self.geo_equ_sph # For ease of use
+        
+        self.elongation = arccos( cos((self._sun.ecl_sph[0]-self.geo_ecl_sph[0])*rd) * cos(self.geo_ecl_sph[1]*rd) )*(180/pi)
         self.FV = 180 - self.elongation
-
-    def topocentric_correction(self, obs_loc):
-        LON, LAT = obs_loc
-        mpar = arcsin(1/self.r)*(180/pi) # moon parallax
-        gclat = LAT - 0.1924 * sin(2*LAT*rd)
-        rho   = 0.99833 + 0.00167 * cos(2*LAT*rd)
-
-        UT = getUT(d)
-
-        GMST0 = rev(self._sun.L + 180) / 15
-        LST = GMST0 + UT + LON/15 # in hours
-        LST_deg = LST * 15
-        HA = rev(LST_deg - self.ra)
-
-        # auxiliary angle
-        g = arctan( tan(gclat*rd) / cos(HA*rd) )*(180/pi)
-
-        topRA  = self.ra  - mpar * rho * cos(gclat*rd) * sin(HA*rd) / cos(self.dec*rd)
-        topDEC = self.dec - mpar * rho * sin(gclat*rd) * sin((g-self.dec)*rd) / sin(g*rd)
-        return topRA, topDEC
         
 
 class planet:
@@ -163,20 +130,24 @@ class planet:
     
     Parameters
     ----------
-        d (datetime): time of observation
-        name (str) : name of the planet
-        obs_loc : tuple of observer location (longtitude, latitude)
+        name (str)      : name of the planet
+        t (datetime)    : time of observation
+        obs_loc (tuple) : observer location (longtitude, latitude)
+        epoch (int)     : year of epoch
 
     Attributes
     ----------
-        
         hel_ecl_sph  : Heliocentric ecliptic spherical coordinates (lon, lat, r)
         hel_ecl_car  : Heliocentric ecliptic cartesian coordinates (x, y, z)
         geo_ecl_car  : Geocentric ecliptic cartesian coordinates (x, y, z)
         geo_ecl_sph  : Geocentric ecliptic spherical coordinates (lon, lat, r)
         geo_equ_car  : Geocentric equatorial cartesian coordinates (x, y, z)
         geo_equ_sph  : Geocentric equatorial spherical coordinates (ra, dec, r)
-        
+        ra           : Right Ascension (GCRS)
+        dec          : Declination (GCRS)
+        r            : distance to earth (in AU)
+        alt          : azimuth
+        az           : altitude
         elongation : elongation
         FV         : phase angle
         mag        : Apparent magnitude

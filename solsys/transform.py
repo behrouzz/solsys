@@ -8,7 +8,7 @@ def mag(x):
 
 
 def elements_to_ecliptic(name, N,i,w,a,e,M):
-    E = getE(e, M, dp=5)
+    E = getE(e, M, dp=15)
     xv = a * (cos(E*rd) - e)
     yv = a * (sqrt(1 - e**2) * sin(E*rd))
     r = sqrt(xv**2 + yv**2) # distance

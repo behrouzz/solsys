@@ -1,4 +1,5 @@
-from numpy import sin, cos, pi
+from numpy import array, pi, sin, cos, tan, arcsin, arctan
+from utils import rev, getUT
 
 rd = pi/180
 dg = 180/pi
@@ -22,6 +23,30 @@ def moon_perts(Ls, Ms, Lm, Mm, Nm, D, F):
     # Perturbations in lunar distance (Earth radii):
     pert_r = -0.58 * cos((Mm-2*D)*rd) - 0.46 * cos(2*D*rd)
     return pert_lon, pert_lat, pert_r
+
+
+
+def topocentric(obs_loc, Lsun, geo_equ_sph, d):
+    LON, LAT = obs_loc
+    ra, dec, r = geo_equ_sph
+    mpar = arcsin(1/r)*(180/pi) # moon parallax
+    gclat = LAT - 0.1924 * sin(2*LAT*rd)
+    rho   = 0.99833 + 0.00167 * cos(2*LAT*rd)
+
+    UT = getUT(d)
+
+    GMST0 = rev(Lsun + 180) / 15
+    LST = GMST0 + UT + LON/15 # in hours
+    LST_deg = LST * 15
+    HA = rev(LST_deg - ra)
+
+    # auxiliary angle
+    g = arctan( tan(gclat*rd) / cos(HA*rd) )*(180/pi)
+
+    topRA  = ra  - mpar * rho * cos(gclat*rd) * sin(HA*rd) / cos(dec*rd)
+    topDEC = dec - mpar * rho * sin(gclat*rd) * sin((g-dec)*rd) / sin(g*rd)
+    return array([topRA, topDEC, r])
+
 
 
 def jupiter_lon_perts(Mj, Ms, Mu):
