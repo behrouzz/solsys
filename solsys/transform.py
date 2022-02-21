@@ -122,3 +122,79 @@ def state_to_element(r, v, mu=1.32712440018e+20):
     a = 1 / ((2/mag(r)) - (mag(v)**2 / mu))
 
     return N,i,w,a,e,M
+
+
+def state_to_kepler(r_, v_, mu=0.00029591220819207774):
+    """
+    (All distances in AU, times in d, angles in radian)
+
+    N   : longitude of the ascending node
+    i   : inclination to the ecliptic
+    w   : argument of perihelion
+    a   : semi-major axis
+    e   : eccentricity
+    M   : mean anomaly
+    TA  : true anomaly
+    L   : mean longitude
+    T   : period
+    tsp : time since periapse passage
+    EA  : eccentric anomaly
+    n   : Mean angular motion
+    """
+    
+    # specific angular momentum
+    h_ = np.cross(r_, v_) # = L_/m = (r_Xp_)/m = (r_Xm*v_)/m = r_ X v_
+    h = mag(h_)
+
+    # radius and velocity
+    r = mag(r_)
+    v = mag(v_)
+
+    # specific energy
+    E = ((v**2)/2) - (mu/r)
+
+    # semi-major axis
+    a = -mu/(2*E)
+
+    # eccentricity
+    e = np.sqrt( 1 - (h**2/(a*mu)) )
+
+    # inclination (0 to 180)
+    i = np.arccos(h_[-1]/h)
+
+    # right ascension of ascending node (0 to 360)
+    N = np.arctan2(h_[0], -h_[1])
+
+    # argument of latitude (w+v) (0 to 360)
+    if i!=0:
+        w_v = np.arctan2( (r_[-1]/np.sin(i)) , (r_[0]*np.cos(N)+r_[1]*np.sin(N)) )
+    else:
+        w_v = np.arctan2( np.inf , (r_[0]*np.cos(N)+r_[1]*np.sin(N)) )
+
+    # true anomaly (0 to 360)
+    p = a*(1-e**2)
+    TA = np.arctan2( np.sqrt(p/mu)*np.dot(v_,r_) , p-r )
+
+    # argument of periapse
+    w = w_v - TA
+
+    # eccentric anomaly (0 to 360)
+    EA = 2 * np.arctan( np.sqrt((1-e)/(1+e)) * np.tan(TA/2) )
+
+    # mean anomaly
+    M = EA - e*np.sin(EA)
+
+    # Mean angular motion
+    n = np.sqrt(mu/a**3)
+
+    # mean longitude
+    L = M + w
+
+    # period
+    T = 2*np.pi * np.sqrt((a**3)/mu)
+
+    # time since periapse passage
+    tsp = np.sqrt((a**3)/mu) * M
+    dc = {'N':N, 'i':i, 'w':w, 'a':a, 'e':e, 'M':M,
+          'TA':TA, 'L':L, 'T':T, 'tsp':tsp, 'EA':EA, 'n':n}
+    return dc
