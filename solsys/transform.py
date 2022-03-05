@@ -41,6 +41,17 @@ def ecliptic_to_equatorial(ecl_xyz, d):
     z_equ = y_ecl * np.sin(ecl*rd) + z_ecl * np.cos(ecl*rd)
     return np.array([x_equ, y_equ, z_equ])
 
+def equatorial_to_ecliptic(spherical):
+    ra, dec, r = spherical
+    lon, lat = equ2ecl(ra, dec)
+    return lon, lat, r
+
+def equcar_to_eclcar(xyz):
+    equ_sph = cartesian_to_spherical(xyz)
+    ecl_sph = equatorial_to_ecliptic(equ_sph)
+    ecl_car = spherical_to_cartesian(ecl_sph)
+    return ecl_car
+
 def equ2ecl(ra, dec):
     ra, dec = ra*(pi/180), dec*(pi/180)
     epsilon = (23 + 26/60 + 21.448/3600)*pi/180
