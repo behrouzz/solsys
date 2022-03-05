@@ -1,5 +1,5 @@
 import numpy as np
-from numpy import sin, cos, sqrt, arctan2
+from numpy import sin, cos, sqrt, arctan2, pi
 from .utils import rev, obl_ecl, getE, rd, dg
 from datetime import datetime
 
@@ -40,6 +40,17 @@ def ecliptic_to_equatorial(ecl_xyz, d):
     y_equ = y_ecl * np.cos(ecl*rd) - z_ecl * np.sin(ecl*rd)
     z_equ = y_ecl * np.sin(ecl*rd) + z_ecl * np.cos(ecl*rd)
     return np.array([x_equ, y_equ, z_equ])
+
+def equ2ecl(ra, dec):
+    ra, dec = ra*(pi/180), dec*(pi/180)
+    epsilon = (23 + 26/60 + 21.448/3600)*pi/180
+    sb = sin(dec)*cos(epsilon) - cos(dec)*sin(epsilon)*sin(ra)
+    cbcl = cos(dec)*cos(ra)
+    cbsl = sin(dec)*sin(epsilon) + cos(dec)*cos(epsilon)*sin(ra)
+    lon = rev(arctan2(cbsl,cbcl)*(180/pi))
+    r = sqrt(cbsl**2 + cbcl**2)
+    lat = arctan2(sb,r)*(180/pi)
+    return lon, lat
 
 def spherical_to_cartesian(spherical):
     lon, lat, r = spherical
