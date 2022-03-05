@@ -44,7 +44,7 @@ def ecliptic_to_equatorial(ecl_xyz, d):
 def equatorial_to_ecliptic(spherical):
     ra, dec, r = spherical
     lon, lat = equ2ecl(ra, dec)
-    return lon, lat, r
+    return np.array([lon, lat, r])
 
 def equcar_to_eclcar(xyz):
     equ_sph = cartesian_to_spherical(xyz)
